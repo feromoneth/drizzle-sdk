@@ -1,0 +1,43 @@
+name: Stacks Next Growth Engine
+
+on:
+  schedule:
+    - cron: "0 */6 * * *" # every 6 hours
+  workflow_dispatch:
+
+jobs:
+  growth:
+    name: ${{ matrix.os }} | Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Clean environment
+        shell: bash
+        run: |
+          npx rimraf node_modules package-lock.json || true
+          npm cache clean --force
+
+      - name: Install dependencies
+        working-directory: ./growth/stacks-next-bot
+        run: |
+          npm install --prefer-online --no-audit --no-fund --no-package-lock || npm install
+
+      - name: Delay
+        run: node -e "setTimeout(() => {}, Math.floor(Math.random()*3000)+3000)"
+      - name: Run growth bot safely
+        working-directory: ./growth/stacks-next-bot
+        run: |
+          npm run start || echo "Execution failed, continuing"
